@@ -7,7 +7,7 @@ Fedora CoreOS stable plus a thin host layer: `ghcr.io/ai-bedrock/coreos`.
 Everything it changes against upstream:
 
 - `rootfs/etc/ssh/sshd_config.d/10-hardening.conf`: key-only SSH (`AuthenticationMethods publickey`), `AllowUsers core`, no root login, no password, keyboard-interactive or GSSAPI, no X11
-- `rootfs/etc/sysconfig/nftables.conf`: the host firewall, its own `inet host` table with policy drop; established, loopback, ICMP, DHCP replies and TCP 22 in
+- `rootfs/etc/sysconfig/nftables.conf`: the host firewall, its own `inet host` table with policy drop; established, loopback, ICMP, DHCP replies and TCP 22, 80 and 443 in
 - `rootfs/etc/systemd/resolved.conf.d/10-no-multicast.conf`: no LLMNR or mDNS listeners
 - `rootfs/etc/zincati/config.d/90-image-updates.toml`: Zincati off, because it follows Fedora's update graph and not this image's tag
 - `rootfs/etc/systemd/system/bootc-fetch-apply-updates.timer.d/10-window.conf`: bootc's update timer runs daily at 03:30 UTC plus up to 30 minutes, and reboots only when a new image was staged
