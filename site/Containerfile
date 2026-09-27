@@ -1,6 +1,9 @@
 # site: the website's static files and nothing else, for a web server to mount read-only (the
 # nginx image here serves it from /usr/share/nginx/html).
 #
+# A change here builds, signs and pushes only this image, and the host then swaps it in (the site
+# workflow's push trigger).
+#
 # This image is PUBLIC, like the site. README.md lists every file it holds.
 FROM scratch
 
