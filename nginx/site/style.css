@@ -1,9 +1,0 @@
-:root { color-scheme: light dark; --bg: #e9e3d8; --fg: #3f3a34; --muted: #736a5f; }
-@media (prefers-color-scheme: dark) { :root { --bg: #1f1c19; --fg: #e9e3d8; --muted: #9b8f80; } }
-html { background: var(--bg); color: var(--fg); font: 1.125rem/1.5 system-ui, sans-serif; }
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; }
-main { padding: 2rem 1rem; text-align: center; }
-h1 { margin: 1rem 0 .25rem; font-size: 2.25rem; letter-spacing: -.02em; }
-p { margin: .5rem 0; }
-a { color: var(--muted); }
-svg { display: block; margin: 0 auto; }

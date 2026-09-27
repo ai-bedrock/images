@@ -4,8 +4,8 @@ Container and OS images, one folder each, built by GitHub Actions, signed, and p
 
 | image | what it is |
 |---|---|
-| [coreos](coreos/) | Fedora CoreOS stable plus a thin host layer: key-only SSH, a firewall with inbound SSH, HTTP and HTTPS only and no metadata service after the first boot, signed images only from this namespace, automatic updates in a daily reboot window |
-| [nginx](nginx/) | nginx (official unprivileged image) plus its ACME module: one static site over HTTPS with a certificate it obtains and renews itself |
+| [coreos](coreos/) | Fedora CoreOS stable plus a thin host layer: key-only SSH, a firewall with inbound SSH, HTTP and HTTPS only and no metadata service after the first boot, signed images only from this namespace, automatic updates in a daily reboot window, container image updates on a push trigger (a `deploy` user with one forced command) |
+| [nginx](nginx/) | nginx (official unprivileged image) plus its ACME module: one static site (the site image, mounted) over HTTPS with a certificate it obtains and renews itself |
 | [site](site/) | the website's static files only (`FROM scratch`), mounted read-only into nginx; a site change ships only this image |
 
 ## Verifying a signature

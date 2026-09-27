@@ -1,5 +1,6 @@
 # nginx: nginx's official unprivileged image (stable, Alpine) plus nginx's ACME module, serving one
-# static site (site/) over HTTPS with a certificate it obtains and renews itself.
+# static site over HTTPS with a certificate it obtains and renews itself. The site's files are
+# not in it: mount them at /usr/share/nginx/html (the site image here, README.md).
 #
 # This image is PUBLIC: nothing private goes in it. The server name and the ACME directory come
 # in at run time (environment; README.md).
@@ -18,7 +19,6 @@ RUN . /etc/os-release \
     && install -d -o 101 -g 0 -m 0700 /var/lib/nginx/acme
 
 COPY rootfs/ /
-COPY site/ /usr/share/nginx/html/
 
 # The entrypoint puts the container's resolvers in NGINX_LOCAL_RESOLVERS (the module needs one).
 ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
