@@ -1,0 +1,46 @@
+#!/bin/bash
+# image-update [name...]: for each image named in /etc/image-update/images (all when none given),
+# pull its reference (through the host's signature policy) and, when the image changed, restart
+# the units listed after it. One line per image on stdout (the journal), also kept in
+# /run/image-update/<name> for the deploy command to echo back.
+#
+# /etc/image-update/images, one image per line: <name> <reference> <unit>...
+set -euo pipefail
+
+conf=/etc/image-update/images
+names=() refs=() units=()
+while read -r name ref rest; do
+  [[ -z $name || $name == \#* ]] && continue
+  names+=("$name")
+  refs+=("$ref")
+  units+=("$rest")
+done <"$conf"
+
+(($#)) || set -- "${names[@]}"
+mkdir -p /run/image-update
+
+for want in "$@"; do
+  i=-1
+  for j in "${!names[@]}"; do
+    [[ ${names[j]} == "$want" ]] && i=$j
+  done
+  if ((i < 0)); then
+    echo "$want: not an image of this host" >&2
+    exit 2
+  fi
+  ref=${refs[i]}
+  read -ra restart <<<"${units[i]}"
+  before=$(podman image inspect --format '{{.Id}}' "$ref" 2>/dev/null || true)
+  podman pull -q "$ref" >/dev/null
+  after=$(podman image inspect --format '{{.Id}}' "$ref")
+  digest=$(podman image inspect --format '{{.Digest}}' "$ref")
+  if [[ $before == "$after" ]]; then
+    line="$want $digest unchanged"
+  else
+    ((${#restart[@]} == 0)) || systemctl restart "${restart[@]}"
+    podman image prune -f >/dev/null
+    line="$want $digest pulled, restarted ${restart[*]:-nothing}"
+  fi
+  echo "$line"
+  echo "$line" >"/run/image-update/$want"
+done

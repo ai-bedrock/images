@@ -1,0 +1,9 @@
+[Unit]
+Description=Pull every image in /etc/image-update/images and restart the units using a changed one
+ConditionPathExists=/etc/image-update/images
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/ai-bedrock/image-update

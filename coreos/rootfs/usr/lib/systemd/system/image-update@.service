@@ -1,0 +1,10 @@
+[Unit]
+Description=Pull the %i image (signature-checked) and restart the units using it
+Documentation=file:///etc/image-update/images
+ConditionPathExists=/etc/image-update/images
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/ai-bedrock/image-update %i

@@ -6,7 +6,7 @@ Fedora CoreOS stable plus a thin host layer: `ghcr.io/ai-bedrock/coreos`.
 
 Everything it changes against upstream:
 
-- `rootfs/etc/ssh/sshd_config.d/10-hardening.conf`: key-only SSH (`AuthenticationMethods publickey`), `AllowUsers core`, no root login, no password, keyboard-interactive or GSSAPI, no X11
+- `rootfs/etc/ssh/sshd_config.d/10-hardening.conf`: key-only SSH (`AuthenticationMethods publickey`), `AllowUsers core deploy`, no root login, no password, keyboard-interactive or GSSAPI, no X11; the `deploy` user gets one forced command (below), its keys only from the root-owned `/etc/image-update/authorized_keys`, and no pty, forwarding, tunnel or rc file
 - `rootfs/etc/sysconfig/nftables.conf`: the host firewall, its own `inet host` table: inbound policy drop with established, loopback, ICMP, DHCP replies and TCP 22, 80 and 443 in; the cloud metadata service (169.254.169.254, fe80::a9fe:a9fe) rejected from the host and from containers (output and forward chains), since it serves the user-data and only the first boot, before this image, needs it
 - `rootfs/etc/systemd/system/afterburn-sshkeys@.service.d/10-off.conf`: Afterburn no longer fetches SSH keys from the metadata service at each boot (unless the kernel command line has `afterburn.sshkeys`); the keys come from Ignition
 - `rootfs/etc/systemd/resolved.conf.d/10-no-multicast.conf`: no LLMNR or mDNS listeners
@@ -15,6 +15,12 @@ Everything it changes against upstream:
 - `rootfs/etc/containers/policy.json`: images under `ghcr.io/ai-bedrock` only when signed with the key below (sigstore); anything else accepted unchecked as upstream, spelled per transport with a default of `reject`, since bootc refuses a signature-checked reference while the default is `insecureAcceptAnything`; used by podman, rpm-ostree and bootc
 - `rootfs/etc/containers/registries.d/ghcr.io-ai-bedrock.yaml`: look for those signatures as sigstore attachments on the registry
 - `rootfs/etc/pki/containers/ai-bedrock-images.pub`: the public half of the signing key
-- `Containerfile`: enables `nftables.service` and `bootc-fetch-apply-updates.timer`, then runs `bootc container lint`
+- `rootfs/usr/lib/sysusers.d/deploy.conf`: the `deploy` user (no password, home `/`), which CI logs in as to trigger an image update
+- `rootfs/usr/libexec/ai-bedrock/deploy`: the deploy user's forced command: reads image names (lower case, single spaces) from `SSH_ORIGINAL_COMMAND`, refuses the whole request (exit 2, logged) unless each is literally a name in `/etc/image-update/images`, then starts `image-update@<name>.service` for each and echoes its result line
+- `rootfs/usr/share/polkit-1/rules.d/50-deploy.rules`: lets the deploy user start `image-update@<name>.service`, nothing else
+- `rootfs/usr/libexec/ai-bedrock/image-update`: pulls the named images (or all) listed in `/etc/image-update/images` (`<name> <reference> <unit>...` per line, per host, from Ignition) through the signature policy and restarts their units when an image changed; logs `<name> <digest> <what it did>`
+- `rootfs/usr/lib/systemd/system/image-update@.service`: one image's update, as root (what the deploy command starts)
+- `rootfs/usr/lib/systemd/system/image-update.service`, `image-update.timer`: every listed image daily at 00:30 UTC plus up to 30 minutes, in case a push trigger was missed; nothing without `/etc/image-update/images`
+- `Containerfile`: enables `nftables.service`, `bootc-fetch-apply-updates.timer` and `image-update.timer`, then runs `bootc container lint`
 
 A host switches to it signature-checked with `rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ai-bedrock/coreos:stable` (or `bootc switch --enforce-container-sigpolicy`), once the policy files above are in its `/etc`.

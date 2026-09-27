@@ -1,0 +1,47 @@
+#!/bin/bash
+# The deploy user's forced command (sshd's ForceCommand): the client's command is a list of image
+# names separated by single spaces, e.g. `site nginx`. Each must be a name in
+# /etc/image-update/images, compared literally; anything else refuses the whole request before
+# anything runs. Each name then starts image-update@<name>.service (allowed by a polkit rule) and
+# echoes its result line.
+set -uo pipefail
+
+conf=/etc/image-update/images
+request=${SSH_ORIGINAL_COMMAND:-}
+
+refuse() {
+  logger -t deploy -p auth.warning "refused: $1"
+  echo "refused: $1" >&2
+  exit 2
+}
+
+# Only lower-case names and single spaces: no other character reaches anything below.
+names_re='^[a-z0-9][a-z0-9-]*( [a-z0-9][a-z0-9-]*)*$'
+[[ $request =~ $names_re ]] || refuse "not a list of image names"
+IFS=' ' read -ra wanted <<<"$request"
+
+known=()
+while read -r name _; do
+  [[ -z $name || $name == \#* ]] && continue
+  known+=("$name")
+done <"$conf"
+
+for want in "${wanted[@]}"; do
+  found=false
+  for name in "${known[@]}"; do
+    [[ $want == "$name" ]] && found=true
+  done
+  $found || refuse "unknown image: $want"
+done
+
+status=0
+for want in "${wanted[@]}"; do
+  logger -t deploy "update requested: $want"
+  if systemctl start "image-update@$want.service"; then
+    cat "/run/image-update/$want"
+  else
+    echo "$want: update failed" >&2
+    status=1
+  fi
+done
+exit "$status"

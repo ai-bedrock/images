@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily image update, in case a push trigger was missed
+ConditionPathExists=/etc/image-update/images
+
+[Timer]
+OnCalendar=*-*-* 00:30:00 UTC
+RandomizedDelaySec=30m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
