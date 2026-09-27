@@ -1,0 +1,29 @@
+# site: on changes to it on main, and by hand; then the host updates it (push trigger).
+name: site
+
+on:
+  push:
+    branches: [main]
+    paths: [site/**, .github/workflows/site.yml, .github/workflows/build.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  site:
+    uses: ./.github/workflows/build.yml
+    with:
+      image: site
+      deploy: true
+    secrets:
+      IMAGE_SIGNING_KEY: ${{ secrets.IMAGE_SIGNING_KEY }}
+      IMAGE_SIGNING_PASSPHRASE: ${{ secrets.IMAGE_SIGNING_PASSPHRASE }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
