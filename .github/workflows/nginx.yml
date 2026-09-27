@@ -1,4 +1,5 @@
-# nginx: on changes to it on main, by hand, and daily (skipped when its base hasn't moved).
+# nginx: on changes to it on main, by hand, and daily (skipped when its base hasn't moved); then
+# the host updates it (push trigger).
 name: nginx
 
 on:
@@ -22,6 +23,10 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       image: nginx
+      deploy: true
     secrets:
       IMAGE_SIGNING_KEY: ${{ secrets.IMAGE_SIGNING_KEY }}
       IMAGE_SIGNING_PASSPHRASE: ${{ secrets.IMAGE_SIGNING_PASSPHRASE }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
