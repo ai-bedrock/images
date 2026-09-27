@@ -6,6 +6,7 @@ on:
     paths: ["*/Containerfile", .github/**, .config/**]
   pull_request:
     paths: ["*/Containerfile", .github/**, .config/**]
+  workflow_dispatch:
 
 permissions:
   contents: read
