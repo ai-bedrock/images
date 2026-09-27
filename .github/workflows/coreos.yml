@@ -1,0 +1,27 @@
+# coreos: on changes to it on main, by hand, and daily (skipped when upstream stable hasn't moved).
+name: coreos
+
+on:
+  push:
+    branches: [main]
+    paths: [coreos/**, .github/workflows/coreos.yml, .github/workflows/build.yml]
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: coreos
+  cancel-in-progress: false
+
+jobs:
+  coreos:
+    uses: ./.github/workflows/build.yml
+    with:
+      image: coreos
+    secrets:
+      IMAGE_SIGNING_KEY: ${{ secrets.IMAGE_SIGNING_KEY }}
+      IMAGE_SIGNING_PASSPHRASE: ${{ secrets.IMAGE_SIGNING_PASSPHRASE }}

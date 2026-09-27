@@ -1,0 +1,14 @@
+# coreos: Fedora CoreOS stable plus a thin host layer (SSH hardening, a host firewall, signed
+# images only from this registry namespace, automatic updates in a reboot window).
+#
+# This image is PUBLIC: nothing private goes in it. No keys (other than the public signing key),
+# tokens, passwords, IPs, hostnames, names or account details. Per-host and secret values come in
+# at creation through Ignition (user-data). README.md lists every file this layer adds or changes.
+FROM quay.io/fedora/fedora-coreos:stable
+
+COPY rootfs/ /
+
+# Zincati follows Fedora's own update graph and can't follow a derived image; bootc's timer
+# (window in its drop-in) pulls this image's tag instead. nftables loads /etc/sysconfig/nftables.conf.
+RUN systemctl enable nftables.service bootc-fetch-apply-updates.timer \
+    && bootc container lint

@@ -1,0 +1,4 @@
+# Signatures of ghcr.io/ai-bedrock images are sigstore attachments next to each image.
+docker:
+  ghcr.io/ai-bedrock:
+    use-sigstore-attachments: true

@@ -1,0 +1,7 @@
+*.log
+.env
+.env.*
+.config/mise/*.local.toml
+.config/.local/
+/.work/
+/.claude/worktrees/

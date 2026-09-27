@@ -1,0 +1,91 @@
+# Builds one image (the folder named by `image`), signs it with the sigstore key in the repo
+# secrets and pushes it to ghcr.io/<owner>/<image>, tagged `stable`, by date and by its base's
+# digest (`base-<digest>`), then pulls it back through coreos's own signature policy. Scheduled
+# runs skip the build when that base digest already has a tag. Called by one workflow per image.
+name: build
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: the image's folder, also its name on the registry
+        required: true
+        type: string
+    secrets:
+      IMAGE_SIGNING_KEY:
+        required: true
+      IMAGE_SIGNING_PASSPHRASE:
+        required: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    env:
+      DIR: ${{ inputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to ghcr.io
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Pull the base and decide
+        id: plan
+        run: |
+          base=$(awk 'toupper($1) == "FROM" { print $2; exit }' "$DIR/Containerfile")
+          podman pull -q "$base" >/dev/null
+          digest=$(podman image inspect --format '{{.Digest}}' "$base")
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/$DIR"
+          base_tag="base-${digest#sha256:}"
+          base_tag="${base_tag:0:17}"
+          build=true
+          if [ "$GITHUB_EVENT_NAME" = schedule ] && podman manifest inspect "$image:$base_tag" >/dev/null 2>&1; then
+            build=false
+          fi
+          {
+            echo "image=$image"
+            echo "base_tag=$base_tag"
+            echo "date=$(date -u +%Y%m%d)"
+            echo "build=$build"
+          } >>"$GITHUB_OUTPUT"
+          echo "base $base at $digest ($base_tag); build=$build"
+
+      - name: Build
+        if: steps.plan.outputs.build == 'true'
+        run: |
+          podman build \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            -t "${{ steps.plan.outputs.image }}:stable" \
+            "$DIR"
+
+      - name: Push, signed
+        if: steps.plan.outputs.build == 'true'
+        env:
+          SIGNING_KEY: ${{ secrets.IMAGE_SIGNING_KEY }}
+          SIGNING_PASSPHRASE: ${{ secrets.IMAGE_SIGNING_PASSPHRASE }}
+        run: |
+          # coreos's registries.d file: signatures go next to the image as sigstore attachments
+          mkdir -p ~/.config/containers/registries.d
+          cp coreos/rootfs/etc/containers/registries.d/*.yaml ~/.config/containers/registries.d/
+          keys=$(mktemp -d)
+          trap 'rm -rf "$keys"' EXIT
+          printf '%s' "$SIGNING_KEY" >"$keys/key"
+          printf '%s' "$SIGNING_PASSPHRASE" >"$keys/passphrase"
+          image="${{ steps.plan.outputs.image }}"
+          for tag in "${{ steps.plan.outputs.date }}" "${{ steps.plan.outputs.base_tag }}" stable; do
+            podman push \
+              --sign-by-sigstore-private-key "$keys/key" \
+              --sign-passphrase-file "$keys/passphrase" \
+              "$image:stable" "docker://$image:$tag"
+          done
+
+      - name: Verify against the host's policy
+        if: steps.plan.outputs.build == 'true'
+        run: |
+          sudo install -D -m 0644 coreos/rootfs/etc/pki/containers/ai-bedrock-images.pub /etc/pki/containers/ai-bedrock-images.pub
+          podman rmi -f "${{ steps.plan.outputs.image }}:stable"
+          podman pull -q --signature-policy coreos/rootfs/etc/containers/policy.json "${{ steps.plan.outputs.image }}:stable"

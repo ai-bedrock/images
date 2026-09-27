@@ -1,0 +1,19 @@
+# Tooling and tasks: `mise install`, then `mise run` lists them. Caches live in .config/.local/.
+
+[tools]
+hadolint = "2.15.1"
+actionlint = "1.7.12"
+
+[tasks.containerfiles]
+description = "hadolint on every image's Containerfile"
+dir = "{{config_root}}"
+run = "hadolint */Containerfile && echo 'Containerfiles: ok'"
+
+[tasks.actions]
+description = "actionlint on the workflows"
+dir = "{{config_root}}"
+run = "actionlint && echo 'workflows: ok'"
+
+[tasks.check]
+description = "everything that must be green before a commit"
+depends = ["containerfiles", "actions"]

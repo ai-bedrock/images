@@ -1,0 +1,3 @@
+# Updates come from this image's registry tag (bootc-fetch-apply-updates.timer), not Zincati.
+[updates]
+enabled = false
