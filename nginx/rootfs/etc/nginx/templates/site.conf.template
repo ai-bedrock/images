@@ -1,14 +1,13 @@
 # One site at https://<SERVER_NAME>/: HTTP and www.<SERVER_NAME> redirect there with a 301.
-# The certificate for both names comes from the ACME server at ACME_DIRECTORY, bound to an
-# external account (key id ACME_EAB_KID, MAC key in /run/secrets/acme_eab_hmac, base64url);
-# account key, key and certificate persist in /var/lib/nginx/acme. Listens on 8080 and 8443.
+# The certificate for both names comes from the ACME server at ACME_DIRECTORY (e.g. Let's
+# Encrypt); account key, key and certificate persist in /var/lib/nginx/acme. Listens on 8080
+# and 8443.
 # The entrypoint fills in the variables from the environment at start.
 
 resolver ${NGINX_LOCAL_RESOLVERS} ipv6=off;
 
 acme_issuer site {
     uri ${ACME_DIRECTORY};
-    external_account_key ${ACME_EAB_KID} /run/secrets/acme_eab_hmac;
     state_path /var/lib/nginx/acme;
     accept_terms_of_service;
 }

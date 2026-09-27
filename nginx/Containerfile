@@ -1,8 +1,8 @@
 # nginx: nginx's official unprivileged image (stable, Alpine) plus nginx's ACME module, serving one
 # static site (site/) over HTTPS with a certificate it obtains and renews itself.
 #
-# This image is PUBLIC: nothing private goes in it. The server name, the ACME directory and the
-# external account binding come in at run time (environment and podman secrets; README.md).
+# This image is PUBLIC: nothing private goes in it. The server name and the ACME directory come
+# in at run time (environment; README.md).
 # README.md lists every file this layer adds or changes.
 FROM docker.io/nginxinc/nginx-unprivileged:1.30.5-alpine3.24
 
