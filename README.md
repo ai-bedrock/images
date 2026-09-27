@@ -4,7 +4,7 @@ Container and OS images, one folder each, built by GitHub Actions, signed, and p
 
 | image | what it is |
 |---|---|
-| [coreos](coreos/) | Fedora CoreOS stable plus a thin host layer: key-only SSH, a firewall with inbound SSH, HTTP and HTTPS only, signed images only from this namespace, automatic updates in a daily reboot window |
+| [coreos](coreos/) | Fedora CoreOS stable plus a thin host layer: key-only SSH, a firewall with inbound SSH, HTTP and HTTPS only and no metadata service after the first boot, signed images only from this namespace, automatic updates in a daily reboot window |
 | [nginx](nginx/) | nginx (official unprivileged image) plus its ACME module: one static site over HTTPS with a certificate it obtains and renews itself |
 
 ## Verifying a signature
