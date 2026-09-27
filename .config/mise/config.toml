@@ -3,6 +3,7 @@
 [tools]
 hadolint = "2.15.1"
 actionlint = "1.7.12"
+shellcheck = "0.11.0"
 
 [tasks.containerfiles]
 description = "hadolint on every image's Containerfile"
@@ -14,6 +15,11 @@ description = "actionlint on the workflows"
 dir = "{{config_root}}"
 run = "actionlint && echo 'workflows: ok'"
 
+[tasks.shell]
+description = "shellcheck on the images' scripts"
+dir = "{{config_root}}"
+run = "shellcheck coreos/rootfs/usr/libexec/ai-bedrock/* && echo 'scripts: ok'"
+
 [tasks.check]
 description = "everything that must be green before a commit"
-depends = ["containerfiles", "actions"]
+depends = ["containerfiles", "actions", "shell"]

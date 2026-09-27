@@ -13,7 +13,7 @@ ai-bedrock's container and OS images: one folder per image, each built, signed a
 ## Mechanics
 
 - tool config lives in `.config/` (mise), caches in `.config/.local/`, local scratch in `/.work/` (git-ignored); `mise run` lists tasks
-- `mise run check` green before every commit: hadolint, actionlint
+- `mise run check` green before every commit: hadolint, actionlint, shellcheck
 - a new image: a folder with a Containerfile and README.md, and a workflow calling `.github/workflows/build.yml` with its path filter (copy `coreos.yml`); images built on another image here say `FROM ghcr.io/ai-bedrock/<it>:stable`
 - no roles of its own yet: agents work from this file
 

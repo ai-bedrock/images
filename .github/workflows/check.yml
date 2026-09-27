@@ -1,11 +1,11 @@
-# `mise run check` (hadolint, actionlint) when an image or the workflows change.
+# `mise run check` (hadolint, actionlint, shellcheck) when an image, a script or the workflows change.
 name: check
 
 on:
   push:
-    paths: ["*/Containerfile", .github/**, .config/**]
+    paths: ["*/Containerfile", "*/rootfs/usr/libexec/**", .github/**, .config/**]
   pull_request:
-    paths: ["*/Containerfile", .github/**, .config/**]
+    paths: ["*/Containerfile", "*/rootfs/usr/libexec/**", .github/**, .config/**]
   workflow_dispatch:
 
 permissions:
