@@ -1,7 +1,10 @@
 # Builds one image (the folder named by `image`), signs it with the sigstore key in the repo
 # secrets and pushes it to ghcr.io/<owner>/<image>, tagged `stable`, by date and by its base's
-# digest (`base-<digest>`), then pulls it back through coreos's own signature policy. Scheduled
-# runs skip the build when that base digest already has a tag. Called by one workflow per image.
+# digest (`base-<digest>`; none for `FROM scratch`), then pulls it back through coreos's own
+# signature policy. Scheduled runs skip the build when that base digest already has a tag. With
+# `deploy`, it then tells the host to update that image (the deploy user's forced command, coreos
+# README); the host's name, SSH host key and the deploy key are secrets, so none of them shows.
+# Called by one workflow per image.
 name: build
 
 on:
@@ -11,11 +14,22 @@ on:
         description: the image's folder, also its name on the registry
         required: true
         type: string
+      deploy:
+        description: after the push, ask the host to pull the image and restart what uses it
+        required: false
+        type: boolean
+        default: false
     secrets:
       IMAGE_SIGNING_KEY:
         required: true
       IMAGE_SIGNING_PASSPHRASE:
         required: true
+      DEPLOY_HOST:
+        required: false
+      DEPLOY_KNOWN_HOSTS:
+        required: false
+      DEPLOY_SSH_KEY:
+        required: false
 
 permissions:
   contents: read
@@ -40,13 +54,16 @@ jobs:
         id: plan
         run: |
           base=$(awk 'toupper($1) == "FROM" { print $2; exit }' "$DIR/Containerfile")
-          podman pull -q "$base" >/dev/null
-          digest=$(podman image inspect --format '{{.Digest}}' "$base")
           image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/$DIR"
-          base_tag="base-${digest#sha256:}"
-          base_tag="${base_tag:0:17}"
+          base_tag=""
+          if [ "$base" != scratch ]; then
+            podman pull -q "$base" >/dev/null
+            digest=$(podman image inspect --format '{{.Digest}}' "$base")
+            base_tag="base-${digest#sha256:}"
+            base_tag="${base_tag:0:17}"
+          fi
           build=true
-          if [ "$GITHUB_EVENT_NAME" = schedule ] && podman manifest inspect "$image:$base_tag" >/dev/null 2>&1; then
+          if [ "$GITHUB_EVENT_NAME" = schedule ] && [ -n "$base_tag" ] && podman manifest inspect "$image:$base_tag" >/dev/null 2>&1; then
             build=false
           fi
           {
@@ -55,7 +72,7 @@ jobs:
             echo "date=$(date -u +%Y%m%d)"
             echo "build=$build"
           } >>"$GITHUB_OUTPUT"
-          echo "base $base at $digest ($base_tag); build=$build"
+          echo "base $base ${base_tag:-(no tag)}; build=$build"
 
       - name: Build
         if: steps.plan.outputs.build == 'true'
@@ -80,6 +97,7 @@ jobs:
           printf '%s' "$SIGNING_PASSPHRASE" >"$keys/passphrase"
           image="${{ steps.plan.outputs.image }}"
           for tag in "${{ steps.plan.outputs.date }}" "${{ steps.plan.outputs.base_tag }}" stable; do
+            [ -n "$tag" ] || continue
             podman push \
               --sign-by-sigstore-private-key "$keys/key" \
               --sign-passphrase-file "$keys/passphrase" \
@@ -92,3 +110,28 @@ jobs:
           sudo install -D -m 0644 coreos/rootfs/etc/pki/containers/ai-bedrock-images.pub /etc/pki/containers/ai-bedrock-images.pub
           podman rmi -f "${{ steps.plan.outputs.image }}:stable"
           podman pull -q --signature-policy coreos/rootfs/etc/containers/policy.json "${{ steps.plan.outputs.image }}:stable"
+
+      - name: Deploy
+        if: steps.plan.outputs.build == 'true' && inputs.deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "$DEPLOY_HOST" ]; then
+            echo "no deploy target; the host's daily update picks it up"
+            exit 0
+          fi
+          # the host's name and addresses never show in the log
+          echo "::add-mask::$DEPLOY_HOST"
+          for address in $(getent ahosts "$DEPLOY_HOST" | awk '{ print $1 }' | sort -u); do
+            echo "::add-mask::$address"
+          done
+          keys=$(mktemp -d)
+          trap 'rm -rf "$keys"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" >"$keys/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" >"$keys/known_hosts"
+          chmod 0600 "$keys/key"
+          ssh -i "$keys/key" -o IdentitiesOnly=yes -o BatchMode=yes -o LogLevel=ERROR \
+            -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$keys/known_hosts" \
+            -o ConnectTimeout=30 -T "deploy@$DEPLOY_HOST" "$DIR"
