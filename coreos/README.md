@@ -12,7 +12,7 @@ Everything it changes against upstream:
 - `rootfs/etc/systemd/resolved.conf.d/10-no-multicast.conf`: no LLMNR or mDNS listeners
 - `rootfs/etc/zincati/config.d/90-image-updates.toml`: Zincati off, because it follows Fedora's update graph and not this image's tag
 - `rootfs/etc/systemd/system/bootc-fetch-apply-updates.timer.d/10-window.conf`: bootc's update timer runs daily at 03:30 UTC plus up to 30 minutes, and reboots only when a new image was staged
-- `rootfs/etc/containers/policy.json`: images under `ghcr.io/ai-bedrock` only when signed with the key below (sigstore); anything else as upstream (accepted unchecked); used by podman, rpm-ostree and bootc
+- `rootfs/etc/containers/policy.json`: images under `ghcr.io/ai-bedrock` only when signed with the key below (sigstore); anything else accepted unchecked as upstream, spelled per transport with a default of `reject`, since bootc refuses a signature-checked reference while the default is `insecureAcceptAnything`; used by podman, rpm-ostree and bootc
 - `rootfs/etc/containers/registries.d/ghcr.io-ai-bedrock.yaml`: look for those signatures as sigstore attachments on the registry
 - `rootfs/etc/pki/containers/ai-bedrock-images.pub`: the public half of the signing key
 - `Containerfile`: enables `nftables.service` and `bootc-fetch-apply-updates.timer`, then runs `bootc container lint`
