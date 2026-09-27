@@ -1,0 +1,30 @@
+# nginx: nginx's official unprivileged image (stable, Alpine) plus nginx's ACME module, serving one
+# static site (site/) over HTTPS with a certificate it obtains and renews itself.
+#
+# This image is PUBLIC: nothing private goes in it. The server name, the ACME directory and the
+# external account binding come in at run time (environment and podman secrets; README.md).
+# README.md lists every file this layer adds or changes.
+FROM docker.io/nginxinc/nginx-unprivileged:1.30.5-alpine3.24
+
+USER 0
+
+# The module from nginx.org's own Alpine repository (its signing key ships in the base image),
+# pinned to the base's nginx version; the default site goes.
+RUN . /etc/os-release \
+    && apk add --no-cache \
+        --repository "https://nginx.org/packages/alpine/v${VERSION_ID%.*}/main" \
+        "nginx-module-acme~${NGINX_VERSION}" \
+    && rm -f /etc/nginx/conf.d/default.conf /usr/share/nginx/html/* \
+    && install -d -o 101 -g 0 -m 0700 /var/lib/nginx/acme
+
+COPY rootfs/ /
+COPY site/ /usr/share/nginx/html/
+
+# The entrypoint puts the container's resolvers in NGINX_LOCAL_RESOLVERS (the module needs one).
+ENV NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1
+
+LABEL org.opencontainers.image.title="nginx" \
+      org.opencontainers.image.description="nginx with its ACME module, serving one static site over HTTPS"
+
+EXPOSE 8080 8443
+USER 101

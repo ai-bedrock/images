@@ -1,0 +1,27 @@
+# nginx: on changes to it on main, by hand, and daily (skipped when its base hasn't moved).
+name: nginx
+
+on:
+  push:
+    branches: [main]
+    paths: [nginx/**, .github/workflows/nginx.yml, .github/workflows/build.yml]
+  schedule:
+    - cron: "37 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: nginx
+  cancel-in-progress: false
+
+jobs:
+  nginx:
+    uses: ./.github/workflows/build.yml
+    with:
+      image: nginx
+    secrets:
+      IMAGE_SIGNING_KEY: ${{ secrets.IMAGE_SIGNING_KEY }}
+      IMAGE_SIGNING_PASSPHRASE: ${{ secrets.IMAGE_SIGNING_PASSPHRASE }}

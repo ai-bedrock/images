@@ -4,3 +4,6 @@ One line per item: `- [ ] <what> — <why it waits>`. Tick it or delete it when 
 
 - [ ] Keyless signing (Fulcio + Rekor through the workflow's OIDC identity) instead of the key pair, once containers/image policies match certificate URI SANs (GitHub's workflow identity; today they match emails only), so no signing secret remains
 - [ ] Rebuild images built on coreos when coreos changes (a `workflow_run` trigger or a matrix) — no such image yet
+- [ ] Bump nginx's base tag when nginx.org releases a new stable (by hand, or a bot that opens the change) — the daily build only follows rebuilds of the pinned tag
+- [ ] An Open Graph image and structured data (JSON-LD) for the site — the placeholder carries the one line only
+- [ ] A test of the nginx image in CI (a local ACME server such as pebble with an external account binding, then the redirects, headers and 404) — tested by hand so far

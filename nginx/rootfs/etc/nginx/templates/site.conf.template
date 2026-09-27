@@ -1,0 +1,73 @@
+# One site at https://<SERVER_NAME>/: HTTP and www.<SERVER_NAME> redirect there with a 301.
+# The certificate for both names comes from the ACME server at ACME_DIRECTORY, bound to an
+# external account (key id ACME_EAB_KID, MAC key in /run/secrets/acme_eab_hmac, base64url);
+# account key, key and certificate persist in /var/lib/nginx/acme. Listens on 8080 and 8443.
+# The entrypoint fills in the variables from the environment at start.
+
+resolver ${NGINX_LOCAL_RESOLVERS} ipv6=off;
+
+acme_issuer site {
+    uri ${ACME_DIRECTORY};
+    external_account_key ${ACME_EAB_KID} /run/secrets/acme_eab_hmac;
+    state_path /var/lib/nginx/acme;
+    accept_terms_of_service;
+}
+
+acme_shared_zone zone=ngx_acme_shared:256k;
+
+# HTTP: the module answers ACME HTTP-01 challenges before this server's rules run.
+server {
+    listen 8080 default_server;
+    listen [::]:8080 default_server;
+    server_name _;
+
+    return 301 https://${SERVER_NAME}$request_uri;
+}
+
+server {
+    listen 8443 ssl default_server;
+    listen [::]:8443 ssl default_server;
+    http2 on;
+    server_name ${SERVER_NAME} www.${SERVER_NAME};
+
+    acme_certificate site ${SERVER_NAME} www.${SERVER_NAME};
+    ssl_certificate $acme_certificate;
+    ssl_certificate_key $acme_certificate_key;
+    ssl_certificate_cache max=2;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:ssl:1m;
+    ssl_session_timeout 1d;
+
+    if ($host != ${SERVER_NAME}) {
+        return 301 https://${SERVER_NAME}$request_uri;
+    }
+
+    root /usr/share/nginx/html;
+    index index.html;
+    error_page 404 /404.html;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header Cross-Origin-Opener-Policy same-origin always;
+
+    location / {
+        try_files $uri $uri/ =404;
+        expires 1h;
+    }
+
+    location ~* \.(?:css|png|svg)$ {
+        expires 7d;
+    }
+
+    location = /404.html {
+        internal;
+    }
+
+    location = /favicon.ico {
+        log_not_found off;
+        access_log off;
+        return 404;
+    }
+}
