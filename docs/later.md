@@ -9,3 +9,4 @@ One line per item: `- [ ] <what> — <why it waits>`. Tick it or delete it when 
 - [ ] A test of the nginx image in CI (a local ACME server such as pebble, then the redirects, headers and 404) — tested by hand so far
 - [ ] Push trigger for more than one host (a list of targets, or an environment per host) — one host serves the site today
 - [ ] Rotate the deploy key on a schedule (a new key pair, the host's `authorized_keys` and the repo secret) — no schedule yet
+- [ ] Name content images after the site they serve, not a generic `site` (several sites are planned): rename the `site/` folder, its package, the quadlet and the host's image list, and delete the old package — a note from the lead, not urgent
