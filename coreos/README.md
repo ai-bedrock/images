@@ -8,7 +8,7 @@ Everything it changes against upstream:
 
 - `rootfs/etc/ssh/sshd_config.d/10-hardening.conf`: key-only SSH (`AuthenticationMethods publickey`), `AllowUsers core`, no root login, no password, keyboard-interactive or GSSAPI, no X11
 - `rootfs/etc/sysconfig/nftables.conf`: the host firewall, its own `inet host` table: inbound policy drop with established, loopback, ICMP, DHCP replies and TCP 22, 80 and 443 in; the cloud metadata service (169.254.169.254, fe80::a9fe:a9fe) rejected from the host and from containers (output and forward chains), since it serves the user-data and only the first boot, before this image, needs it
-- `rootfs/etc/systemd/system/afterburn-sshkeys@.service.d/10-off.conf`: Afterburn no longer fetches SSH keys from the metadata service at each boot; the keys come from Ignition
+- `rootfs/etc/systemd/system/afterburn-sshkeys@.service.d/10-off.conf`: Afterburn no longer fetches SSH keys from the metadata service at each boot (unless the kernel command line has `afterburn.sshkeys`); the keys come from Ignition
 - `rootfs/etc/systemd/resolved.conf.d/10-no-multicast.conf`: no LLMNR or mDNS listeners
 - `rootfs/etc/zincati/config.d/90-image-updates.toml`: Zincati off, because it follows Fedora's update graph and not this image's tag
 - `rootfs/etc/systemd/system/bootc-fetch-apply-updates.timer.d/10-window.conf`: bootc's update timer runs daily at 03:30 UTC plus up to 30 minutes, and reboots only when a new image was staged
