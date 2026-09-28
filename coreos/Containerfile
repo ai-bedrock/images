@@ -10,7 +10,9 @@ FROM quay.io/fedora/fedora-coreos:stable
 COPY rootfs/ /
 
 # Zincati follows Fedora's own update graph and can't follow a derived image; bootc's timer
-# (window in its drop-in) pulls this image's tag instead. nftables loads /etc/sysconfig/nftables.conf.
+# (window in its drop-in) pulls this image's tag instead, so Zincati doesn't run at all.
+# nftables loads /etc/sysconfig/nftables.conf.
 # image-update.timer does nothing on a host without /etc/image-update/images.
 RUN systemctl enable nftables.service bootc-fetch-apply-updates.timer image-update.timer \
+    && systemctl disable zincati.service \
     && bootc container lint
