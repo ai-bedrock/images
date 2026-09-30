@@ -1,6 +1,7 @@
 # Builds one image (the folder named by `image`), signs it with the sigstore key in the repo
 # secrets and pushes it to ghcr.io/<owner>/<image>, tagged `stable`, by date and by its base's
-# digest (`base-<digest>`; none for `FROM scratch`), then pulls it back through coreos's own
+# digest (`base-<digest>`; none for `FROM scratch`), after its folder's `test.sh` passes when it
+# has one, then pulls it back through coreos's own
 # signature policy. Scheduled runs skip the build when that base digest already has a tag. With
 # `deploy`, it then tells the host to update that image (the deploy user's forced command, coreos
 # README); the host's name, SSH host key and the deploy key are secrets, so none of them shows.
@@ -81,6 +82,14 @@ jobs:
             --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             -t "${{ steps.plan.outputs.image }}:stable" \
             "$DIR"
+
+      - name: Test
+        if: steps.plan.outputs.build == 'true'
+        # a failure here stops the push and the deploy
+        run: |
+          if [ -f "$DIR/test.sh" ]; then
+            "$DIR/test.sh" "${{ steps.plan.outputs.image }}:stable"
+          fi
 
       - name: Push, signed
         if: steps.plan.outputs.build == 'true'

@@ -18,7 +18,12 @@ run = "actionlint && echo 'workflows: ok'"
 [tasks.shell]
 description = "shellcheck on the images' scripts"
 dir = "{{config_root}}"
-run = "shellcheck coreos/rootfs/usr/libexec/ai-bedrock/* && echo 'scripts: ok'"
+run = "shellcheck coreos/rootfs/usr/libexec/ai-bedrock/* */test.sh && echo 'scripts: ok'"
+
+[tasks.test-nginx]
+description = "build nginx and test it against a local ACME server (podman), as CI does before a push"
+dir = "{{config_root}}"
+run = "podman build -q -t localhost/nginx:test nginx >/dev/null && nginx/test.sh localhost/nginx:test"
 
 [tasks.check]
 description = "everything that must be green before a commit"

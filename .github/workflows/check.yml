@@ -3,9 +3,9 @@ name: check
 
 on:
   push:
-    paths: ["*/Containerfile", "*/rootfs/usr/libexec/**", .github/**, .config/**]
+    paths: ["*/Containerfile", "*/rootfs/usr/libexec/**", "*/test.sh", .github/**, .config/**]
   pull_request:
-    paths: ["*/Containerfile", "*/rootfs/usr/libexec/**", .github/**, .config/**]
+    paths: ["*/Containerfile", "*/rootfs/usr/libexec/**", "*/test.sh", .github/**, .config/**]
   workflow_dispatch:
 
 permissions:

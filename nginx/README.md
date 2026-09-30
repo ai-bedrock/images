@@ -22,6 +22,10 @@ podman run -d -p 80:8080 -p 443:8443 \
   ghcr.io/ai-bedrock/nginx:stable
 ```
 
+## Its test
+
+`test.sh <image>` runs the image as above with the [site](../site/) mounted, next to a local ACME server (pebble) on a podman network where `example.test` and `www.example.test` resolve to it, and checks: a certificate issued for both names, HTTP and www 301 to `https://example.test/`, the security headers, `robots.txt` and `sitemap.xml` 200 when the site has them, a missing path 404. CI runs it after the build and before the push; locally, `mise run test-nginx`. It is not part of the image.
+
 ## Everything it changes against upstream
 
 - `Containerfile`: installs `nginx-module-acme` from nginx.org's Alpine repository (signed with nginx's key, which the base image carries), matching the base's nginx version; removes the default site (`conf.d/default.conf`, `index.html`, `50x.html`), leaving `/usr/share/nginx/html` empty for a mounted site; creates `/var/lib/nginx/acme` (uid 101, mode 0700); sets `NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1` so the entrypoint hands the container's resolvers to nginx; its own title and description labels; exposes 8080 and 8443
