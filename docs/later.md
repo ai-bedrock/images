@@ -11,3 +11,4 @@ One line per item: `- [ ] <what> — <why it waits>`. Tick it or delete it when 
 - [ ] Name content images after the site they serve, not a generic `site` (several sites are planned): rename the `site/` folder, its package, the quadlet and the host's image list, and delete the old package — a note from the lead, not urgent
 - [x] Run nginx's test when the site changes too (the site workflow pushes and deploys without it) — the test mounts `site/`, but only nginx's workflow runs it
 - [ ] Per-address request or connection limits in nginx (`limit_req`, `limit_conn`) — a static site; a limit can hit many visitors behind one NAT address, so it needs numbers first
+- [ ] Find out why `podman system check` reports the running nginx image damaged (its layer's `/etc` mtime changes under the container), so `podman system check -r` would delete the live image — found while sandboxing image-update; nothing breaks while no one repairs
