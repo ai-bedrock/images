@@ -2,7 +2,9 @@
 # image-update [name...]: for each image named in /etc/image-update/images (all when none given),
 # pull its reference (through the host's signature policy) and, when the image changed, restart
 # the units listed after it. One line per image on stdout (the journal), also kept in
-# /run/image-update/<name> for the deploy command to echo back.
+# /run/image-update/<name> for the deploy command to echo back. Its unit runs it sandboxed, in
+# a mount namespace of its own; the prune runs as a unit of its own, in the host's, since removing
+# an image unmounts its layers and an unmount here wouldn't reach the host.
 #
 # /etc/image-update/images, one image per line: <name> <reference> <unit>...
 set -euo pipefail
@@ -38,7 +40,7 @@ for want in "$@"; do
     line="$want $digest unchanged"
   else
     ((${#restart[@]} == 0)) || systemctl restart "${restart[@]}"
-    podman image prune -f >/dev/null
+    systemd-run --quiet --wait --collect podman image prune -f
     line="$want $digest pulled, restarted ${restart[*]:-nothing}"
   fi
   echo "$line"

@@ -7,3 +7,24 @@ After=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/libexec/ai-bedrock/image-update
+# Sandboxed: root for podman's store and for asking systemd to restart units (they run as before);
+# the rest of the system out of reach. No NoNewPrivileges: it stops podman's SELinux transition to
+# container_runtime_t.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/containers -/run/containers -/run/libpod -/run/lock
+RuntimeDirectory=image-update
+RuntimeDirectoryPreserve=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictRealtime=yes
+RestrictNamespaces=mnt
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
