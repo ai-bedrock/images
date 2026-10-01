@@ -5,6 +5,7 @@ ai-bedrock's container and OS images: one folder per image, each built, signed a
 - the project lead leads the design: ask how they'd approach something before proposing your own; name ideas you're holding back in one line instead of building them
 - KISS; novel over familiar, but say which parts are novel
 - **this repo and its images are public: nothing private goes in them.** No keys (other than the public signing key), tokens, passwords, IPs, hostnames, domains, names, account or provider details, in files, image labels, build logs or commit messages; per-host and secret values come in at creation, never through an image
+- content images (a site's files) carry their site's own public domain as their name, dots kept: folder, workflow and package; the one exception to the no-domains rule, for this project's own sites only, and only as that name
 - every file an image adds or changes is listed in that image's README.md, one line each
 - images are signed in CI; hosts accept images under this registry namespace only with that signature
 - anything you skip, defer or hand back goes in `docs/later.md` in the same change, never only in chat
