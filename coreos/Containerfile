@@ -13,6 +13,9 @@ COPY rootfs/ /
 # (window in its drop-in) pulls this image's tag instead, so Zincati doesn't run at all.
 # nftables loads /etc/sysconfig/nftables.conf.
 # image-update.timer does nothing on a host without /etc/image-update/images.
+# Masked, so nothing starts them (a wants link, D-Bus or a timer): gssproxy (no NFS or Kerberos),
+# fwupd and its refresh timer (no firmware to update on a VM), rpm-ostree-countme (Fedora's count).
 RUN systemctl enable nftables.service bootc-fetch-apply-updates.timer image-update.timer \
     && systemctl disable zincati.service \
+    && systemctl mask gssproxy.service fwupd.service fwupd-refresh.timer rpm-ostree-countme.timer \
     && bootc container lint

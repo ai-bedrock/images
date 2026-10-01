@@ -22,6 +22,7 @@ Everything it changes against upstream:
 - `rootfs/usr/libexec/ai-bedrock/image-update`: pulls the named images (or all) listed in `/etc/image-update/images` (`<name> <reference> <unit>...` per line, per host, from Ignition) through the signature policy and restarts their units when an image changed; logs `<name> <digest> <what it did>`
 - `rootfs/usr/lib/systemd/system/image-update@.service`: one image's update, as root (what the deploy command starts)
 - `rootfs/usr/lib/systemd/system/image-update.service`, `image-update.timer`: every listed image daily at 00:30 UTC plus up to 30 minutes, in case a push trigger was missed; nothing without `/etc/image-update/images`
-- `Containerfile`: enables `nftables.service`, `bootc-fetch-apply-updates.timer` and `image-update.timer`, disables `zincati.service`, then runs `bootc container lint`
+- `/etc/systemd/system/gssproxy.service`, `fwupd.service`, `fwupd-refresh.timer`, `rpm-ostree-countme.timer` (links to `/dev/null`, made by the `Containerfile`): masked, so nothing starts them; no NFS or Kerberos, no firmware to update on a VM, no usage count to Fedora
+- `Containerfile`: enables `nftables.service`, `bootc-fetch-apply-updates.timer` and `image-update.timer`, disables `zincati.service`, masks the four units above, then runs `bootc container lint`
 
 A host switches to it signature-checked with `rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ai-bedrock/coreos:stable` (or `bootc switch --enforce-container-sigpolicy`), once the policy files above are in its `/etc`.
