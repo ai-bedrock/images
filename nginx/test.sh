@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Tests a built nginx image end to end with podman, as it runs on a host: a local ACME server
 # (pebble) issues its certificate, then the redirects, security headers, the site's files and
-# the 404 are checked over the network. Usage: nginx/test.sh <image>. Exits non-zero on any
-# failure, printing both servers' logs.
+# the 404 are checked over the network. Usage: nginx/test.sh <image> [<site image>]; without a
+# site image it builds one from site/. Exits non-zero on any failure, printing both servers' logs.
 #
 # The names are test names (RFC 2606's .test) that only this run's podman network resolves: the
 # nginx container answers to them as network aliases, and pebble validates HTTP-01 against it.
@@ -10,7 +10,8 @@
 # uses the system's trust by default), so the image and its template run unchanged.
 set -euo pipefail
 
-image=${1:?usage: $0 <nginx image>}
+image=${1:?usage: $0 <nginx image> [<site image>]}
+site_image=${2:-}
 name=example.test
 pebble=ghcr.io/letsencrypt/pebble:2.10.1
 here=$(cd "$(dirname "$0")" && pwd)
@@ -30,7 +31,9 @@ cleanup() {
   podman rm -f -t 0 "$run-nginx" "$run-pebble" >/dev/null 2>&1 || true
   podman volume rm -f "$run-acme" >/dev/null 2>&1 || true
   podman network rm -f "$run" >/dev/null 2>&1 || true
-  podman rmi -f "localhost/$run-site" >/dev/null 2>&1 || true
+  if [ "$site_image" = "localhost/$run-site" ]; then # only the one built here
+    podman rmi -f "$site_image" >/dev/null 2>&1 || true
+  fi
   rm -rf "$work"
 }
 trap cleanup EXIT
@@ -65,13 +68,16 @@ podman cp "$run-pebble:/test/certs/pebble.minica.pem" "$work/minica.pem"
 podman run --rm --entrypoint cat "$image" /etc/ssl/certs/ca-certificates.crt >"$work/bundle.pem"
 cat "$work/minica.pem" >>"$work/bundle.pem"
 
-podman build -q -t "localhost/$run-site" "$site" >/dev/null
+if [ -z "$site_image" ]; then
+  site_image=localhost/$run-site
+  podman build -q -t "$site_image" "$site" >/dev/null
+fi
 podman volume create "$run-acme" >/dev/null
 podman run -d --name "$run-nginx" --network "$run" \
   --network-alias "$name" --network-alias "www.$name" \
   -e SERVER_NAME="$name" -e ACME_DIRECTORY="https://pebble:14000/dir" \
   -v "$run-acme:/var/lib/nginx/acme" \
-  --mount "type=image,source=localhost/$run-site,destination=/usr/share/nginx/html" \
+  --mount "type=image,source=$site_image,destination=/usr/share/nginx/html" \
   --read-only --tmpfs /etc/nginx/conf.d:U \
   -v "$work/bundle.pem:/etc/ssl/certs/ca-certificates.crt:ro,z" \
   "$image" >/dev/null

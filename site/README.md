@@ -8,6 +8,10 @@ podman run -d ... --mount type=image,source=ghcr.io/ai-bedrock/site:stable,desti
 
 In a Podman quadlet: a `site.image` unit (`Image=ghcr.io/ai-bedrock/site:stable`) and `Mount=type=image,source=site.image,destination=/usr/share/nginx/html` in the container unit, which then pulls the site before it starts. `podman auto-update` doesn't follow a mounted image; the coreos image's `image-update` does (push trigger and daily).
 
+## Its test
+
+`test.sh <image>` serves the image with the registry's current `nginx:stable` through [nginx's test](../nginx/README.md#its-test), so a site change is checked by the same test before its push and deploy. It is not part of the image.
+
 ## Every file
 
 - `Containerfile`: `FROM scratch`, copies `public/` to `/`, its own title and description labels

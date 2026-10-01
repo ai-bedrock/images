@@ -24,7 +24,7 @@ podman run -d -p 80:8080 -p 443:8443 \
 
 ## Its test
 
-`test.sh <image>` runs the image as above with the [site](../site/) mounted, next to a local ACME server (pebble) on a podman network where `example.test` and `www.example.test` resolve to it, and checks: a certificate issued for both names, HTTP and www 301 to `https://example.test/`, the security headers, `robots.txt` and `sitemap.xml` 200 when the site has them, a missing path 404. CI runs it after the build and before the push; locally, `mise run test-nginx`. It is not part of the image.
+`test.sh <image> [<site image>]` runs the image as above with the [site](../site/) mounted (built from `site/` unless a site image is given), next to a local ACME server (pebble) on a podman network where `example.test` and `www.example.test` resolve to it, and checks: a certificate issued for both names, HTTP and www 301 to `https://example.test/`, the security headers, `robots.txt` and `sitemap.xml` 200 when the site has them, a missing path 404. CI runs it after the build and before the push; locally, `mise run test-nginx`. It is not part of the image.
 
 ## Everything it changes against upstream
 
