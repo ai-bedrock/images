@@ -10,13 +10,17 @@ FROM docker.io/nginxinc/nginx-unprivileged:1.30.5-alpine3.24
 USER 0
 
 # The module from nginx.org's own Alpine repository (its signing key ships in the base image),
-# pinned to the base's nginx version; the default site goes.
+# pinned to the base's nginx version; the default site goes. The last touch keeps /etc's own entry
+# in the layer: buildah up to 1.45 drops it when /etc looks unchanged apart from its RUN mount
+# targets (hosts, resolv.conf), so the pull recreates /etc with the pull's time and
+# `podman system check` calls the layer damaged (decisions.md).
 RUN . /etc/os-release \
     && apk add --no-cache \
         --repository "https://nginx.org/packages/alpine/v${VERSION_ID%.*}/main" \
         "nginx-module-acme~${NGINX_VERSION}" \
     && rm -f /etc/nginx/conf.d/default.conf /usr/share/nginx/html/* \
-    && install -d -o 101 -g 0 -m 0700 /var/lib/nginx/acme
+    && install -d -o 101 -g 0 -m 0700 /var/lib/nginx/acme \
+    && touch /etc
 
 COPY rootfs/ /
 
