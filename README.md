@@ -5,8 +5,8 @@ Container and OS images, one folder each, built by GitHub Actions, signed, and p
 | image | what it is |
 |---|---|
 | [coreos](coreos/) | Fedora CoreOS stable plus a thin host layer: key-only SSH, a firewall with inbound SSH, HTTP and HTTPS only and no metadata service after the first boot, signed images only from this namespace, automatic updates in a daily reboot window, container image updates on a push trigger (a `deploy` user with one forced command) |
-| [nginx](nginx/) | nginx (official unprivileged image) plus its ACME module: one static site (the site image, mounted) over HTTPS with a certificate it obtains and renews itself |
-| [site](site/) | the website's static files only (`FROM scratch`), mounted read-only into nginx; a site change ships only this image |
+| [nginx](nginx/) | nginx (official unprivileged image) plus its ACME module: one static site (a content image, mounted) over HTTPS with a certificate it obtains and renews itself |
+| [ai-bedrock.dev](ai-bedrock.dev/) | the website's static files only (`FROM scratch`), mounted read-only into nginx; a site change ships only this image |
 
 ## Verifying a signature
 
@@ -23,4 +23,4 @@ An unsigned or differently signed image is refused ("A signature was required, b
 
 ## Deploying on push
 
-The site and nginx workflows end with a push trigger: CI logs in over SSH as the host's `deploy` user and sends the name of the image it just pushed; the host pulls it (signature-checked) and restarts what uses it (coreos README: `deploy`, `image-update`). Repo secrets: `DEPLOY_HOST` (the host's name), `DEPLOY_KNOWN_HOSTS` (its SSH host key line), `DEPLOY_SSH_KEY` (the private key whose public half is in the host's `/etc/image-update/authorized_keys`). Without `DEPLOY_HOST` the step does nothing, and the host's daily update picks the image up.
+The website's and nginx's workflows end with a push trigger: CI logs in over SSH as the host's `deploy` user and sends the name of the image it just pushed; the host pulls it (signature-checked) and restarts what uses it (coreos README: `deploy`, `image-update`). Repo secrets: `DEPLOY_HOST` (the host's name), `DEPLOY_KNOWN_HOSTS` (its SSH host key line), `DEPLOY_SSH_KEY` (the private key whose public half is in the host's `/etc/image-update/authorized_keys`). Without `DEPLOY_HOST` the step does nothing, and the host's daily update picks the image up.

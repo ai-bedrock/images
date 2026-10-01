@@ -2,7 +2,7 @@
 # Tests a built nginx image end to end with podman, as it runs on a host: a local ACME server
 # (pebble) issues its certificate, then the redirects, security headers, the site's files and
 # the 404 are checked over the network. Usage: nginx/test.sh <image> [<site image>]; without a
-# site image it builds one from site/. Exits non-zero on any failure, printing both servers' logs.
+# site image it builds one from the website's folder, ai-bedrock.dev/. Exits non-zero on any failure, printing both servers' logs.
 #
 # The names are test names (RFC 2606's .test) that only this run's podman network resolves: the
 # nginx container answers to them as network aliases, and pebble validates HTTP-01 against it.
@@ -15,7 +15,7 @@ site_image=${2:-}
 name=example.test
 pebble=ghcr.io/letsencrypt/pebble:2.10.1
 here=$(cd "$(dirname "$0")" && pwd)
-site=$here/../site
+site=$here/../ai-bedrock.dev
 run=nginx-test-$$
 work=$(mktemp -d)
 chmod 0755 "$work" # the client runs as the image's user; nothing secret in it

@@ -1,10 +1,11 @@
-# site: on changes to it on main, and by hand; then the host updates it (push trigger).
-name: site
+# The website's image, named after its domain: on changes to it on main, and by hand; then the host
+# updates it (push trigger).
+name: ai-bedrock.dev
 
 on:
   push:
     branches: [main]
-    paths: [site/**, .github/workflows/site.yml, .github/workflows/build.yml]
+    paths: [ai-bedrock.dev/**, .github/workflows/ai-bedrock.dev.yml, .github/workflows/build.yml]
   workflow_dispatch:
 
 permissions:
@@ -12,14 +13,14 @@ permissions:
   packages: write
 
 concurrency:
-  group: site
+  group: ai-bedrock.dev
   cancel-in-progress: false
 
 jobs:
-  site:
+  build:
     uses: ./.github/workflows/build.yml
     with:
-      image: site
+      image: ai-bedrock.dev
       deploy: true
     secrets:
       IMAGE_SIGNING_KEY: ${{ secrets.IMAGE_SIGNING_KEY }}

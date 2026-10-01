@@ -8,7 +8,7 @@ One line per item: `- [ ] <what> — <why it waits>`. Tick it or delete it when 
 - [ ] An Open Graph image and structured data (JSON-LD) for the site — the placeholder carries the one line only
 - [ ] Push trigger for more than one host (a list of targets, or an environment per host) — one host serves the site today
 - [ ] Rotate the deploy key on a schedule (a new key pair, the host's `authorized_keys` and the repo secret) — no schedule yet
-- [ ] Name content images after the site they serve, not a generic `site` (several sites are planned): rename the `site/` folder, its package, the quadlet and the host's image list, and delete the old package — a note from the lead, not urgent
+- [x] Name content images after the site they serve, not a generic `site` (several sites are planned): rename the `site/` folder, its package, the quadlet and the host's image list, and delete the old package — a note from the lead, not urgent
 - [x] Run nginx's test when the site changes too (the site workflow pushes and deploys without it) — the test mounts `site/`, but only nginx's workflow runs it
 - [ ] Per-address request or connection limits in nginx (`limit_req`, `limit_conn`) — a static site; a limit can hit many visitors behind one NAT address, so it needs numbers first
 - [ ] Find out why the running nginx image's layer had its `/etc` mtime changed (so `podman system check` called it damaged and `-r` would have deleted it) — not seen since nginx runs in a user namespace (a restart leaves the layer alone); if it shows again, restore the mtime (`touch -m -d @<the old one>` on the layer's `diff/etc`) before any `-r`

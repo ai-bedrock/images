@@ -1,6 +1,6 @@
 # nginx: nginx's official unprivileged image (stable, Alpine) plus nginx's ACME module, serving one
 # static site over HTTPS with a certificate it obtains and renews itself. The site's files are
-# not in it: mount them at /usr/share/nginx/html (the site image here, README.md).
+# not in it: mount them at /usr/share/nginx/html (the website's image here, README.md).
 #
 # This image is PUBLIC: nothing private goes in it. The server name and the ACME directory come
 # in at run time (environment; README.md).

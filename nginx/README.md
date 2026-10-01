@@ -11,20 +11,20 @@ It listens on 8080 (HTTP: ACME HTTP-01 challenges, everything else a 301 to `htt
 - `SERVER_NAME`: the apex name the site answers to; the certificate covers it and `www.<SERVER_NAME>`
 - `ACME_DIRECTORY`: the ACME server's directory URL, e.g. Let's Encrypt's `https://acme-v02.api.letsencrypt.org/directory` (its terms of service are accepted on the account's creation; no contact address, no external account binding)
 - `/var/lib/nginx/acme`: the ACME account key, the certificate and its key; a volume keeps them across restarts, so a restart doesn't order a new certificate
-- `/usr/share/nginx/html`: the site's files, not in this image: mount them there read-only, e.g. the [site](../site/) image (`--mount type=image,...`), so a site change doesn't rebuild nginx
+- `/usr/share/nginx/html`: the site's files, not in this image: mount them there read-only, e.g. the website's [image](../ai-bedrock.dev/) (`--mount type=image,...`), so a site change doesn't rebuild nginx
 - a read-only root works (`--read-only`) when `/etc/nginx/conf.d`, where the entrypoint renders the site, is a tmpfs the container user owns (`--tmpfs /etc/nginx/conf.d:U`); `/tmp` and `/run` are tmpfs by default
 
 ```sh
 podman run -d -p 80:8080 -p 443:8443 \
   -e SERVER_NAME=example.org -e ACME_DIRECTORY=https://acme-v02.api.letsencrypt.org/directory \
   -v nginx-acme:/var/lib/nginx/acme \
-  --mount type=image,source=ghcr.io/ai-bedrock/site:stable,destination=/usr/share/nginx/html \
+  --mount type=image,source=ghcr.io/ai-bedrock/ai-bedrock.dev:stable,destination=/usr/share/nginx/html \
   ghcr.io/ai-bedrock/nginx:stable
 ```
 
 ## Its test
 
-`test.sh <image> [<site image>]` runs the image as above with the [site](../site/) mounted (built from `site/` unless a site image is given), next to a local ACME server (pebble) on a podman network where `example.test` and `www.example.test` resolve to it, and checks: a certificate issued for both names, HTTP and www 301 to `https://example.test/`, the security headers, `robots.txt` and `sitemap.xml` 200 when the site has them, a missing path 404. CI runs it after the build and before the push; locally, `mise run test-nginx`. It is not part of the image.
+`test.sh <image> [<site image>]` runs the image as above with the website's [files](../ai-bedrock.dev/) mounted (built from that folder unless a site image is given), next to a local ACME server (pebble) on a podman network where `example.test` and `www.example.test` resolve to it, and checks: a certificate issued for both names, HTTP and www 301 to `https://example.test/`, the security headers, `robots.txt` and `sitemap.xml` 200 when the site has them, a missing path 404. CI runs it after the build and before the push; locally, `mise run test-nginx`. It is not part of the image.
 
 ## Everything it changes against upstream
 

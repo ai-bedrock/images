@@ -1,0 +1,14 @@
+# The website's static files and nothing else, for a web server to mount read-only (the nginx
+# image here serves it from /usr/share/nginx/html). Named after the site's domain, like every
+# content image here.
+#
+# A change here builds, signs and pushes only this image, and the host then swaps it in (its
+# workflow's push trigger).
+#
+# This image is PUBLIC, like the site. README.md lists every file it holds.
+FROM scratch
+
+COPY public/ /
+
+LABEL org.opencontainers.image.title="ai-bedrock.dev" \
+      org.opencontainers.image.description="the website's static files, for a web server to mount"
