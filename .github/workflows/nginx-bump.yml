@@ -1,0 +1,58 @@
+# nginx-bump: weekly, and by hand, compare nginx's pinned base tag with the base image's current
+# stable (the versioned tag that `stable-alpine` points at) and, when it's newer, push a branch that
+# bumps it and open a pull request (an issue linking the branch while the organization doesn't let
+# Actions open pull requests). Merging it builds, tests and ships nginx through its own workflow.
+name: nginx-bump
+
+on:
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: nginx-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compare and open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: nginxinc/nginx-unprivileged
+          FILE: nginx/Containerfile
+        run: |
+          set -euo pipefail
+          hub="https://hub.docker.com/v2/repositories/$REPO/tags"
+          pinned=$(sed -n "s|^FROM docker.io/$REPO:\(.*\)$|\1|p" "$FILE")
+          digest=$(curl -fsS "$hub/stable-alpine" | jq -r .digest)
+          latest=$(curl -fsS "$hub?name=-alpine&page_size=100&ordering=last_updated" \
+            | jq -r --arg d "$digest" '.results[] | select(.digest == $d) | .name' \
+            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-alpine[0-9.]+$' | sort -V | tail -n1)
+          echo "pinned $pinned, stable $latest"
+          if [ -z "$pinned" ] || [ -z "$latest" ]; then echo "::error::tag not found"; exit 1; fi
+          if [ "$(printf '%s\n%s\n' "$pinned" "$latest" | sort -V | tail -n1)" = "$pinned" ]; then
+            echo "already current"; exit 0
+          fi
+          branch="nginx-$latest"
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "branch $branch exists"; exit 0
+          fi
+          sed -i "s|^FROM docker.io/$REPO:$pinned$|FROM docker.io/$REPO:$latest|" "$FILE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -m "build(nginx): base $latest" -- "$FILE"
+          git push origin "$branch"
+          body="The base image's stable moved from \`$pinned\` to \`$latest\`. Merging builds, tests and ships nginx (its workflow); checks don't run on a pull request this workflow opens, so the build's test is the check."
+          gh pr create --base main --head "$branch" --title "build(nginx): base $latest" --body "$body" \
+            || gh issue create --title "build(nginx): base $latest" \
+              --body "$body Actions may not open pull requests here; open one from: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...$branch"
