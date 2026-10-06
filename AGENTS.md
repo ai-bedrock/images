@@ -8,7 +8,7 @@ ai-bedrock's container and OS images: one folder per image, each built, signed a
 - content images (a site's files) carry their site's own public domain as their name, dots kept: folder, workflow and package; the one exception to the no-domains rule, for this project's own sites only, and only as that name
 - every file an image adds or changes is listed in that image's README.md, one line each
 - images are signed in CI; hosts accept images under this registry namespace only with that signature
-- anything you skip, defer or hand back goes in `docs/later.md` in the same change, never only in chat
+- `docs/decisions.md` and `docs/later.md` are this repo's public record of its decisions and deferrals, updated at release; work in progress is filed in the workbench's own store, which is not in this repo
 - atomic conventional commits, no emojis
 
 ## Mechanics
