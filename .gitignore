@@ -5,3 +5,6 @@
 .config/.local/
 /.work/
 /.claude/worktrees/
+
+# work ledger lock
+ledger/.lock
