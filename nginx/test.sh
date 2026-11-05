@@ -73,6 +73,14 @@ if [ -z "$site_image" ]; then
   podman build -q -t "$site_image" "$site" >/dev/null
 fi
 podman volume create "$run-acme" >/dev/null
+mkdir "$work/locations" "$work/downloads"
+printf 'release fixture\n' >"$work/downloads/setup.exe"
+cat >"$work/locations/downloads.conf" <<'EOF'
+location /downloads/ {
+    alias /srv/downloads/;
+    autoindex off;
+}
+EOF
 podman run -d --name "$run-nginx" --network "$run" \
   --network-alias "$name" --network-alias "www.$name" \
   -e SERVER_NAME="$name" -e ACME_DIRECTORY="https://pebble:14000/dir" \
@@ -80,6 +88,8 @@ podman run -d --name "$run-nginx" --network "$run" \
   --mount "type=image,source=$site_image,destination=/usr/share/nginx/html" \
   --read-only --tmpfs /etc/nginx/conf.d:U \
   -v "$work/bundle.pem:/etc/ssl/certs/ca-certificates.crt:ro,z" \
+  -v "$work/locations:/etc/nginx/site.d:ro,z" \
+  -v "$work/downloads:/srv/downloads:ro,z" \
   "$image" >/dev/null
 
 # pebble's issuing root, then wait for the certificate
@@ -130,6 +140,8 @@ if [ "$issued" = yes ]; then
     expect "/$f 200" "$(status "$(head_of "https://$name:8443/$f")")" 200
   done
   expect "missing path 404" "$(status "$(head_of "https://$name:8443/no-such-page")")" 404
+  expect "mounted release download" "$(client -f "https://$name:8443/downloads/setup.exe")" "release fixture"
+  expect "download directory listing disabled" "$(status "$(head_of "https://$name:8443/downloads/")")" 403
 fi
 
 [ "$failed" = 0 ] && echo "nginx: all checks passed" || exit 1
