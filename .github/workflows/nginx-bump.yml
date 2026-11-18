@@ -1,5 +1,6 @@
 # nginx-bump: weekly, and by hand, compare nginx's pinned base tag with the base image's current
-# stable (the versioned tag that `stable-alpine` points at) and, when it's newer, push a branch that
+# stable on ghcr.io (the versioned tag that `stable-alpine` points at; nginx stopped pushing to
+# Docker Hub after 2026-10-19) and, when it's newer, push a branch that
 # bumps it and open a pull request (an issue linking the branch while the organization doesn't let
 # Actions open pull requests). Merging it builds, tests and ships nginx through its own workflow.
 name: nginx-bump
@@ -27,16 +28,26 @@ jobs:
       - name: Compare and open a pull request
         env:
           GH_TOKEN: ${{ github.token }}
-          REPO: nginxinc/nginx-unprivileged
+          REPO: nginx/nginx-unprivileged
           FILE: nginx/Containerfile
         run: |
           set -euo pipefail
-          hub="https://hub.docker.com/v2/repositories/$REPO/tags"
-          pinned=$(sed -n "s|^FROM docker.io/$REPO:\(.*\)$|\1|p" "$FILE")
-          digest=$(curl -fsS "$hub/stable-alpine" | jq -r .digest)
-          latest=$(curl -fsS "$hub?name=-alpine&page_size=100&ordering=last_updated" \
-            | jq -r --arg d "$digest" '.results[] | select(.digest == $d) | .name' \
-            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-alpine[0-9.]+$' | sort -V | tail -n1)
+          reg="https://ghcr.io/v2/$REPO"
+          token=$(curl -fsS "https://ghcr.io/token?scope=repository:$REPO:pull" | jq -r .token)
+          digest() {
+            curl -fsSI -H "Authorization: Bearer $token" \
+              -H "Accept: application/vnd.oci.image.index.v1+json" \
+              -H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
+              "$reg/manifests/$1" | tr -d '\r' | awk 'tolower($1) == "docker-content-digest:" { print $2 }'
+          }
+          pinned=$(sed -n "s|^FROM ghcr.io/$REPO:\(.*\)$|\1|p" "$FILE")
+          want=$(digest stable-alpine)
+          latest=""
+          # The newest versioned tags first; the first whose digest is stable-alpine's.
+          for tag in $(curl -fsS -H "Authorization: Bearer $token" "$reg/tags/list?n=10000" \
+            | jq -r '.tags[]' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-alpine[0-9.]+$' | sort -rV | head -n 20); do
+            if [ "$(digest "$tag")" = "$want" ]; then latest=$tag; break; fi
+          done
           echo "pinned $pinned, stable $latest"
           if [ -z "$pinned" ] || [ -z "$latest" ]; then echo "::error::tag not found"; exit 1; fi
           if [ "$(printf '%s\n%s\n' "$pinned" "$latest" | sort -V | tail -n1)" = "$pinned" ]; then
@@ -46,7 +57,7 @@ jobs:
           if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
             echo "branch $branch exists"; exit 0
           fi
-          sed -i "s|^FROM docker.io/$REPO:$pinned$|FROM docker.io/$REPO:$latest|" "$FILE"
+          sed -i "s|^FROM ghcr.io/$REPO:$pinned$|FROM ghcr.io/$REPO:$latest|" "$FILE"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
